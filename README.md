@@ -1,5 +1,10 @@
 # 记录检索器（record-finder）
 
+[![Release](https://img.shields.io/github/v/release/rockyanyan/record-finder)](https://github.com/rockyanyan/record-finder/releases/latest)
+[![CI](https://github.com/rockyanyan/record-finder/actions/workflows/ci.yml/badge.svg)](https://github.com/rockyanyan/record-finder/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Windows%2010%20%7C%2011-lightgrey.svg)](#)
+
 把项目清单（Excel / CSV / 网页表格）导进来，以后**只搜一个词**就能定位到对应的那一行。
 
 界面是一个本地小程序：左边是项目，右边是搜索框 + 结果表 + 详情区。所有数据存在本机 SQLite
@@ -10,14 +15,16 @@
 
 ## 下载
 
-到 [Releases](../../releases) 页面下载最新版本：
+到 [Releases](../../releases/latest) 页面下载最新版本：
 
 | 形式 | 文件 | 适合 |
 | --- | --- | --- |
-| **安装程序**（推荐） | `记录检索器-1.0.0-安装程序.exe`（约 14.7 MB） | 日常使用：装完有开始菜单/桌面图标，可在「设置 → 应用」里卸载 |
-| 绿色单文件 | `记录检索器.exe`（约 13.0 MB） | 拷到 U 盘随身带、免安装、数据跟着文件夹走 |
+| **安装程序**（推荐） | [`record-finder-1.0.0-setup.exe`](../../releases/download/v1.0.0/record-finder-1.0.0-setup.exe)（约 14.7 MB） | 日常使用：装完有开始菜单/桌面图标，可在「设置 → 应用」里卸载 |
+| 绿色单文件 | [`record-finder-1.0.0-portable.exe`](../../releases/download/v1.0.0/record-finder-1.0.0-portable.exe)（约 13.0 MB） | 拷到 U 盘随身带、免安装、数据跟着文件夹走 |
 
 系统要求：Windows 10 / 11（64 位）。不需要预装 Python。
+
+> 分发包未做代码签名，首次运行 Windows SmartScreen 可能提示「未知发布者」，点「更多信息 → 仍要运行」即可。
 
 ![主界面](docs/screenshots/main-search.png)
 
@@ -91,7 +98,7 @@ set RECORD_FINDER_DB=D:\data\物料库.db
 
 ## 安装程序
 
-双击 `dist\installer\记录检索器-1.0.0-安装程序.exe`，一路「下一步」即可。
+双击下载到的 `record-finder-1.0.0-setup.exe`，一路「下一步」即可。
 
 ![安装向导](docs/screenshots/install-01-info.png)
 
@@ -101,7 +108,7 @@ set RECORD_FINDER_DB=D:\data\物料库.db
   想装到 Program Files 也可以用命令行 `/DIR="C:\Program Files\RecordFinder"`，那样才会提权。
 - **升级不丢数据**：直接装新版本覆盖即可，`AppId` 相同，程序文件替换但数据不动。
 - **卸载会问你要不要删数据**，默认选中「否」，避免手滑删掉积累的清单。
-- **静默安装**：`记录检索器-1.0.0-安装程序.exe /VERYSILENT /NORESTART`，适合批量部署。
+- **静默安装**：`record-finder-1.0.0-setup.exe /VERYSILENT /NORESTART`，适合批量部署。
 
 ---
 
