@@ -19,6 +19,14 @@ import sys
 import time
 from pathlib import Path
 
+# CI 的英文代码页控制台无法输出中文（UnicodeEncodeError），统一切成 UTF-8
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (ValueError, OSError):
+            pass
+
 ROOT = Path(__file__).resolve().parent.parent
 SETUP = ROOT / "dist" / "installer" / "记录检索器-1.0.0-安装程序.exe"
 APP_NAME = "记录检索器.exe"
@@ -148,3 +156,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+

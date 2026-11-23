@@ -9,6 +9,14 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+# CI 的英文代码页控制台无法输出中文（UnicodeEncodeError），统一切成 UTF-8
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (ValueError, OSError):
+            pass
+
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
@@ -203,3 +211,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

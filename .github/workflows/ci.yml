@@ -65,16 +65,21 @@ jobs:
       - name: Build single-file exe
         run: python -m PyInstaller record-finder.spec --noconfirm
 
-      - name: Verify exe
+      - name: Verify exe (CLI import/search + GUI launches)
         run: python tools/verify_exe.py
 
-      - name: Build installer (optional)
-        run: |
-          choco install innosetup --no-progress -y
-          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          if (Test-Path $iscc) { & $iscc installer\record-finder.iss }
+      - name: Build installer
         shell: pwsh
         continue-on-error: true
+        run: |
+          choco install innosetup --no-progress -y
+          $candidates = @(
+            "C:\Program Files (x86)\Inno Setup 6\ISCC.exe",
+            "C:\Program Files\Inno Setup 6\ISCC.exe"
+          )
+          $iscc = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $iscc) { throw "ISCC.exe not found" }
+          & $iscc installer\record-finder.iss
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

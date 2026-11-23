@@ -12,6 +12,14 @@ import sys
 import time
 from pathlib import Path
 
+# CI 的英文代码页控制台无法输出中文（UnicodeEncodeError），统一切成 UTF-8
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (ValueError, OSError):
+            pass
+
 ROOT = Path(__file__).resolve().parent.parent
 EXE = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "dist" / "记录检索器.exe"
 WORK = Path(os.environ.get("TEMP", ".")) / "rf-verify"
