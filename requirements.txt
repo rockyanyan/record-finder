@@ -1,0 +1,7 @@
+# 运行时依赖（仅读取/写入 Excel 需要；界面用标准库 tkinter）
+openpyxl>=3.1
+
+# 开发/打包/测试用（可选）：
+#   pytest      单元测试
+#   pyinstaller 打包 exe
+#   pillow      生成图标与安装向导图片、截图验收
