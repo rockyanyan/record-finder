@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install openpyxl pytest
+
+      - name: Byte-compile all sources
+        run: python -m compileall -q src main.py tools tests
+
+      - name: Run tests
+        run: python -m pytest tests -q
+
+      - name: Smoke test CLI import + search
+        run: |
+          $env:RECORD_FINDER_DB = "$env:RUNNER_TEMP\ci.db"
+          python main.py --cli import samples\端子清单.xlsx 端子项目
+          python main.py --cli search "rnbs5.5-4"
+        shell: pwsh
+
+  build:
+    name: Build Windows exe
+    runs-on: windows-latest
+    needs: test
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install openpyxl pyinstaller
+
+      - name: Build single-file exe
+        run: python -m PyInstaller record-finder.spec --noconfirm
+
+      - name: Verify exe
+        run: python tools/verify_exe.py
+
+      - name: Build installer (optional)
+        run: |
+          choco install innosetup --no-progress -y
+          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (Test-Path $iscc) { & $iscc installer\record-finder.iss }
+        shell: pwsh
+        continue-on-error: true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: record-finder-windows
+          path: |
+            dist/*.exe
+            dist/installer/*.exe
+          if-no-files-found: warn
