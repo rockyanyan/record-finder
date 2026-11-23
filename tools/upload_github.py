@@ -56,9 +56,13 @@ EXCLUDE_SUFFIX = {".pyc", ".pyo", ".db", ".db-journal", ".db-wal", ".log", ".tmp
 EXCLUDE_NAMES = {".DS_Store", "Thumbs.db", "desktop.ini"}
 
 # 作为 Release 附件上传（不放进仓库）
+# 用 ASCII 文件名：中文名经 GitHub 附件接口处理后会变成 default.exe 之类的乱码
 BINARIES = [
-    ROOT / "dist" / "记录检索器.exe",
-    ROOT / "dist" / "installer" / "记录检索器-1.0.0-安装程序.exe",
+    (ROOT / "dist" / "记录检索器.exe", "record-finder-1.0.0-portable.exe"),
+    (
+        ROOT / "dist" / "installer" / "记录检索器-1.0.0-安装程序.exe",
+        "record-finder-1.0.0-setup.exe",
+    ),
 ]
 
 RELEASE_NOTES = """## 记录检索器 v1.0.0
@@ -128,12 +132,18 @@ def api(method: str, path: str, payload=None, retries: int = 3, base: str = API)
     raise RuntimeError(f"请求失败 {method} {path}: {last}")
 
 
-def upload_asset(upload_url: str, path: Path) -> dict:
-    """上传 Release 附件（走 uploads.github.com，单独的 Content-Type）。"""
-    name = path.name
-    url = f"{upload_url.split('{')[0]}?name={urllib.parse.quote(name)}"
+def upload_asset(upload_url: str, path: Path, asset_name: str = "") -> dict:
+    """上传 Release 附件。
+
+    注意：附件名必须用 ASCII-safe 的 URL 编码，否则 GitHub 会解析成乱码
+    （中文名曾导致资产被存成 default.exe / -1.0.0-.exe）。
+    这里统一先把名字做 percent-encoding，并且显式 safe=''，
+    避免 quote 默认保留 '/' 之类的字符。
+    """
+    name = asset_name or path.name
+    url = f"{upload_url.split('{')[0]}?name={urllib.parse.quote(name, safe='')}"
     data = path.read_bytes()
-    ctype = mimetypes.guess_type(name)[0] or "application/octet-stream"
+    ctype = "application/octet-stream"
     headers = {
         "Authorization": f"Bearer {TOKEN}",
         "Accept": "application/vnd.github+json",
@@ -144,7 +154,7 @@ def upload_asset(upload_url: str, path: Path) -> dict:
     }
     req = urllib.request.Request(url, data=data, headers=headers, method="POST")
     try:
-        with urllib.request.urlopen(req, timeout=600) as resp:
+        with urllib.request.urlopen(req, timeout=900) as resp:
             return json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")
@@ -217,10 +227,10 @@ def main() -> int:
     for rel, p in files:
         print(f"  {p.stat().st_size:>9,} B  {rel}")
     print()
-    for b in BINARIES:
+    for b, asset_name in BINARIES:
         mark = "" if b.exists() else "  （缺失，将跳过）"
         size = f"{b.stat().st_size / 1024 / 1024:.2f} MB" if b.exists() else "-"
-        print(f"  Release 附件：{b.name}  {size}{mark}")
+        print(f"  Release 附件：{asset_name}  {size}{mark}")
 
     if args.dry_run:
         print("\n[dry-run] 未做任何改动")
@@ -331,16 +341,22 @@ def main() -> int:
             else:
                 raise
 
+        # 清掉历史上传坏了的附件（名字里带乱码）
+        for a in release.get("assets", []):
+            if a["name"] in {"default.exe"} or a["name"].startswith("-1.0.0-"):
+                print(f"      删除乱码附件 {a['name']}")
+                api("DELETE", f"/repos/{OWNER}/{REPO}/releases/assets/{a['id']}")
+
         existing = {a["name"] for a in release.get("assets", [])}
-        for b in BINARIES:
+        for b, asset_name in BINARIES:
             if not b.exists():
-                print(f"      跳过（不存在）：{b.name}")
+                print(f"      跳过（不存在）：{asset_name}")
                 continue
-            if b.name in existing:
-                print(f"      已存在，跳过：{b.name}")
+            if asset_name in existing:
+                print(f"      已存在，跳过：{asset_name}")
                 continue
-            print(f"      上传 {b.name} ({b.stat().st_size / 1024 / 1024:.2f} MB) ...")
-            asset = upload_asset(release["upload_url"], b)
+            print(f"      上传 {asset_name} ({b.stat().st_size / 1024 / 1024:.2f} MB) ...")
+            asset = upload_asset(release["upload_url"], b, asset_name)
             print(f"        -> {asset.get('browser_download_url', 'ok')}")
 
     final = api("GET", f"/repos/{OWNER}/{REPO}")
